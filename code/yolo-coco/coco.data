@@ -1,0 +1,4 @@
+classes= 80
+names = yolo-coco/coco.names
+eval=coco
+
