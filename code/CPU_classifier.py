@@ -5,6 +5,14 @@ import cv2
 import imutils
 
 def backgroundSubtraction(img, img_background,  kernel = np.ones((3,3),np.uint8)):
+	"""
+	@Description: do a background subtraction
+	@Parameters:
+		- img -> image to subtract the background from
+		- img_background -> background image
+		- kernel -> kernel for morphology operations
+	@Return: image without background
+	"""
 
 	img_copy = img.copy()
 
@@ -25,6 +33,13 @@ def backgroundSubtraction(img, img_background,  kernel = np.ones((3,3),np.uint8)
 	return img
 
 def normalizeHist(hist, numSample):
+	"""
+	@Description: Normalize histogram from 0 to 1
+	@Parameters:
+		- hist -> histogram
+		- numSample -> number of sample inside the histogram
+	@Return: normlized histogram
+	"""
 	hist_perc = hist/numSample
 	hist_perc[0] = hist_perc[0] / hist_perc[0].sum()
 	hist_perc[1] = hist_perc[1] / hist_perc[1].sum()
@@ -32,15 +47,16 @@ def normalizeHist(hist, numSample):
 	return hist_perc
 
 def createMask(image, points):
-	image_copy1 = image.copy()
-	cv2.fillConvexPoly( image_copy1, points, (255,255,255) )
-	image_copy2 = image - image_copy1
-	
-	_, image_copy2 = cv2.threshold(image_copy2,1,255 ,cv2.THRESH_BINARY)
-	image_copy2[:,:,0] = np.uint8(image_copy2[:,:,0] + image_copy2[:,:,1] + image_copy2[:,:,2])
-	image_copy2[:,:,1] = image_copy2[:,:,0]
-	image_copy2[:,:,2] = image_copy2[:,:,0]
-	return image_copy2
+	"""
+	@Description: create a mask from given points
+	@Parameters:
+		- image -> source image, it only serves for dimensions.
+		- points -> points of the polygon, the mask is created to eliminate points outside the polygon
+	@Return: mask image, it's white inside the polygon and black outside. To apply the mask do an AND operation to image.
+	"""
+	maskImg = np.zeros(image.shape, dtype=np.uint8)
+	cv2.fillConvexPoly( maskImg, points, (255,255,255) )
+	return maskImg
 
 if __name__ == "__main__":
 	# construct the argument parse and parse the arguments
@@ -296,7 +312,7 @@ if __name__ == "__main__":
 										detection_referee_bool = True
 
 							if (detection_squad_1_bool == True) and (area >= mean_acc) :
-								color = [255,255,255] # set color -> black
+								color = [255,255,255] # set color -> white
 
 								num_detection_squad_1+=1 # increase number of detection for squad 1
 								
@@ -306,7 +322,7 @@ if __name__ == "__main__":
 								hist_squad_1[2] += np.uint64(histRed)
 
 							elif (detection_squad_2_bool == True) and (area >= mean_acc):
-								color = [55,56,61] # set color -> white
+								color = [55,56,61] # set color -> black
 
 								num_detection_squad_2+=1 # increase number of detection for squad 2
 

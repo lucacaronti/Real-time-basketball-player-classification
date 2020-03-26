@@ -57,8 +57,14 @@ $ python GPU_classifier.py --input ../video/your_video.avi --output ../video/out
 The **background** option is optional, if no image is given the background subtraction is not done, which leads to a decrease in precision.
 
 ###### How to increase deep neural network precision
-Inside the file **yolov3_GPU** there are two variable called **width** and **height**. Higher these variables are, higher is the accuracy of the neural network, but also the video memory used increases so the accuracy depends on how much VRAM you have available.
+Inside the file **yolov3_GPU** there are two variable called **width** and **height**. Higher these variables are, higher is the accuracy of the neural network, but also the video memory used increases so the accuracy depends on how much VRAM you have available. **Width** and **height** must be multiples of 32.
+
+---
+#### CPU_classifier
+It's the same code used for GPU_classifier but using CPU. The usage is the same.
+To increase deep neural network precision you can modify two variable called **DNN_width** and **DNN_height**.
 
 ---
 # Special thanks to
 Special thanks to the guys who developed this beautiful framework and also made it open source -> https://pjreddie.com/darknet/
+Thanks also to https://github.com/LucreziaT and https://github.com/dtessaro that have developed this project with me.
