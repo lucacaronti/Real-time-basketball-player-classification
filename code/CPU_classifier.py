@@ -347,6 +347,7 @@ if __name__ == "__main__":
 			end3 = time.time() # take end time 3
 			video = cv2.resize(frame_bck,(1920,1080),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # resize the video
 			cv2.imshow("video", video)
+			writer.write(frame_bck)
 			if cv2.waitKey(1) & 0xFF == ord('q'):
 				break
 			end1 = time.time() # take end time 1
@@ -355,4 +356,5 @@ if __name__ == "__main__":
 			print("[INFO] Ttot: {:5f}, TDNN: {:5f}, TDec: {:5f}".format(end1 - start1, end2 - start2, end3 - start3)) # print stats
 
 	vs.release()
+	writer.release()
 	cv2.destroyAllWindows()
