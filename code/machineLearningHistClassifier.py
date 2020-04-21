@@ -3,6 +3,7 @@ import argparse
 import time
 import cv2
 import imutils
+import pickle
 
 def backgroundSubtraction(img, img_background,  kernel = np.ones((3,3),np.uint8)):
 	"""
@@ -61,14 +62,17 @@ def createMask(image, points):
 if __name__ == "__main__":
 	# construct the argument parse and parse the arguments
 	ap = argparse.ArgumentParser()
-	ap.add_argument("-i", "--input", required=True, help="path to input video")
-	ap.add_argument("-o", "--output", required=True, help="path to output video")
+	ap.add_argument("-i", "--input",required=True, help="path to input video")
+	ap.add_argument("-o", "--output",required=True, help="path to output video")
+	ap.add_argument("-m", "--model", required=True, help="path to machine learning model")
 	ap.add_argument("-b", "--background", help="path to background image", default="")
-	ap.add_argument("-s", "--save_detections", help="path where save detections", default="")
 	args = vars(ap.parse_args())
 
 	# load the COCO class labels our YOLO model was trained on
 	LABELS = open("yolo-coco/coco.names").read().strip().split("\n")
+
+	# load machine learning model
+	model = pickle.load(open(args["model"], 'rb'))
 
 	print("[INFO] loading YOLO from disk...")
 	net = cv2.dnn.readNetFromDarknet("yolo-coco/yolov3.cfg", "yolo-coco/yolov3.weights")
@@ -80,7 +84,7 @@ if __name__ == "__main__":
 		print("[*ERROR*] {} isn't a valid video".format(args["input"]))
 	else:
 		prop = cv2.cv.CV_CAP_PROP_FRAME_COUNT if imutils.is_cv2() else cv2.CAP_PROP_FRAME_COUNT
-		total = ((int(vs.get(prop)))-2)/2
+		total = int(vs.get(prop))
 		print("[INFO] {} total frames in video".format(total))
 		width_video = int(vs.get(cv2.CAP_PROP_FRAME_WIDTH))
 		height_video = int(vs.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -102,7 +106,6 @@ if __name__ == "__main__":
 			background = cv2.bitwise_and(background, maskCourt) # cut out the important part of background
 
 		# --- MENU --- #
-		learingFrame = 1 # frame number in which to enter the data manually in order to create the initial dataset
 		DNN_width = 1280
 		DNN_height = 1280
 		# -------------#
@@ -114,17 +117,6 @@ if __name__ == "__main__":
 
 		num_frame_elab = 0
 		num_detection = 0
-		total_detection_per_frame = 0
-
-		hist_squad_1 = np.zeros((3,256), dtype=np.uint64)
-		hist_squad_1_perc = np.zeros((3,256), dtype=np.float)
-		hist_squad_2 = np.zeros((3,256), dtype=np.uint64)
-		hist_squad_2_perc = np.zeros((3,256), dtype=np.float)
-		hist_referee = np.zeros((3,256), dtype=np.uint64)
-		hist_referee_perc = np.zeros((3,256), dtype=np.float)
-		histDetection_perc = np.zeros((3,256), dtype=np.float)
-
-
 
 		num_detection_squad_1 = 0
 		num_detection_squad_2 = 0
@@ -180,7 +172,7 @@ if __name__ == "__main__":
 			if writer is None:
 				# initialize our video writer
 				fourcc = cv2.VideoWriter_fourcc(*"MJPG")
-				writer = cv2.VideoWriter(args["output"], fourcc, int(vs.get(cv2.CAP_PROP_FPS)),
+				writer = cv2.VideoWriter(args["output"], fourcc, 25,
 					(frame.shape[1], frame.shape[0]), True)
 		
 				# some information on processing single frame
@@ -270,88 +262,41 @@ if __name__ == "__main__":
 							histGreen = (cv2.calcHist([detection_img],[1],None,[256],[1,256])).reshape(256,) # create green histogram, removing first values
 							histRed = (cv2.calcHist([detection_img],[2],None,[256],[1,256])).reshape(256,) # create red histogram, removing first values
 							
-							tot_blue_pixel = histBlue.sum()
-							tot_green_pixel = histGreen.sum()
-							tot_red_pixel = histRed.sum()
-							if tot_blue_pixel != 0 and tot_green_pixel != 0 and tot_red_pixel != 0:
-								histDetection_perc[0] = (histBlue / tot_blue_pixel) # normalize hist
-								histDetection_perc[1] = (histGreen / tot_green_pixel) # normalize hist
-								histDetection_perc[2] = (histRed / tot_red_pixel) # normalize hist
-							
-							if(num_detection_squad_1 != 0):
-								hist_squad_1_perc = normalizeHist(hist_squad_1, num_detection_squad_1) # normalize and mediates hist
-								compHist_1 = cv2.compareHist(np.float32(hist_squad_1_perc), np.float32(histDetection_perc), cv2.HISTCMP_BHATTACHARYYA) # compare hist
-							if(num_detection_squad_2 != 0):
-								hist_squad_2_perc = normalizeHist(hist_squad_2, num_detection_squad_2) # normalize and mediates hist
-								compHist_2 = cv2.compareHist(np.float32(hist_squad_2_perc), np.float32(histDetection_perc), cv2.HISTCMP_BHATTACHARYYA) # compare hist
-							if(num_detection_referee != 0):
-								hist_referee_perc = normalizeHist(hist_referee, num_detection_referee) # normalize and mediates hist
-								compHist_3 = cv2.compareHist(np.float32(hist_referee_perc), np.float32(histDetection_perc), cv2.HISTCMP_BHATTACHARYYA) # compare hist
-							
 							detection_squad_1_bool = False
 							detection_squad_2_bool = False
 							detection_referee_bool = False
 
-							if num_frame_elab <= learingFrame:
-								cv2.imshow("Detection", detection_img)
-								cv2.waitKey(1)
-								user_selection = input("1) squad 1, 2) squad 2, 3) referee, 4) nothing: ")
-								if user_selection == "1":
-									detection_squad_1_bool = True
-								elif user_selection == "2":
-									detection_squad_2_bool = True
-								elif user_selection == "3":
-									detection_referee_bool = True
-							else:
-								BHATTACHARYYA_min = min(compHist_1, compHist_2, compHist_3) # choose the minimum of 3 comparison
-								if (BHATTACHARYYA_min == compHist_1) and (compHist_1 < 0.45):
-										detection_squad_1_bool = True
-								elif (BHATTACHARYYA_min == compHist_2) and (compHist_2 < 0.45):
-										detection_squad_2_bool = True
-								elif (BHATTACHARYYA_min == compHist_3) and (compHist_3 < 0.45):
-										detection_referee_bool = True
+							# inizialize histogram for prediction
+							histPrediction = np.zeros(256*3, dtype = np.float)
+							if histBlue.sum() != 0 and histGreen.sum() != 0 and histRed.sum() != 0:
+								histPrediction[0:256] = np.array(histBlue/histBlue.sum(), dtype = np.float)
+								histPrediction[256:512] = np.array(histGreen/histGreen.sum(), dtype = np.float)
+								histPrediction[512:768] = np.array(histRed/histRed.sum(), dtype = np.float)
+
+							# predic output
+							prediction = model.predict(histPrediction.reshape(1,-1))
+							if prediction == [1]:
+								detection_squad_1_bool = True
+							elif prediction == [2]:
+								detection_squad_2_bool = True
+							elif prediction == [3]:
+								detection_referee_bool = True
 
 							if (detection_squad_1_bool == True) and (area >= mean_acc) :
 								color = [255,255,255] # set color -> white
 
 								num_detection_squad_1+=1 # increase number of detection for squad 1
-								
-								# update histogram of squad 1
-								hist_squad_1[0] += np.uint64(histBlue)
-								hist_squad_1[1] += np.uint64(histGreen)
-								hist_squad_1[2] += np.uint64(histRed)
-
-								if args["save_detections"] != '':
-									detectionResized = cv2.resize(detection_img,(500,1000),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
-									cv2.imwrite(args["save_detection"] + "player1/image" + str(num_detection) + ".png", detectionResized,  [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
 							elif (detection_squad_2_bool == True) and (area >= mean_acc):
 								color = [55,56,61] # set color -> black
 
 								num_detection_squad_2+=1 # increase number of detection for squad 2
 
-								# update histogram of squad 2
-								hist_squad_2[0] += np.uint64(histBlue)
-								hist_squad_2[1] += np.uint64(histGreen)
-								hist_squad_2[2] += np.uint64(histRed)
-
-								if args["save_detections"] != '':
-									detectionResized = cv2.resize(detection_img,(500,1000),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
-									cv2.imwrite(args["save_detection"] + "player2/image" + str(num_detection) + ".png", detectionResized,  [cv2.IMWRITE_PNG_COMPRESSION, 0])
-
 							elif (detection_referee_bool == True) and (area >= mean_acc):
 								color = [255,0,0] # set color -> blue
 
 								num_detection_referee += 1 # increase number of detection for referee
 
-								# update histogram of referee
-								hist_referee[0] += np.uint64(histBlue)
-								hist_referee[1] += np.uint64(histGreen)
-								hist_referee[2] += np.uint64(histRed)
-
-								if args["save_detections"] != '':
-									detectionResized = cv2.resize(detection_img,(500,1000),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
-									cv2.imwrite(args["save_detection"] + "referee/image" + str(num_detection) + ".png", detectionResized,  [cv2.IMWRITE_PNG_COMPRESSION, 0])
 							else:
 								color = [0,0,255] # set color -> red
 							cv2.rectangle(frame_bck, (x, y), (x + w, y + h), color, 2)

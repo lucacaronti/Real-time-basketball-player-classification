@@ -33,7 +33,7 @@ if __name__ == "__main__":
 		
 		ret, frame = cap.read() # read one frame
 
-		if not ret:
+		if ret == False:
 			break
 
 		imgAv = imgAv + np.uint64(frame)
