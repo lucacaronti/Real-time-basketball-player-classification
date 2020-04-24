@@ -239,6 +239,7 @@ if __name__ == "__main__":
 			# bounding boxes
 			idxs = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.3)
 			frame_bck = frame.copy()
+			# frame_bck2 = frame.copy()
 			frame = backgroundSubtraction(frame, background)
 			start3 = time.time()
 			# ensure at least one detection exists
@@ -265,6 +266,7 @@ if __name__ == "__main__":
 						if w*1.2 < h: #check if width is at least 20% smaller than height
 							num_detection += 1
 							detection_img = frame[y_hist:(y_hist+h_hist),x_hist:(x_hist+w_hist),:] # cut out the detection
+							# detectionToSave = frame_bck2[y : (y+h), x : (x+w),:]
 					
 							histBlue = (cv2.calcHist([detection_img],[0],None,[256],[1,256])).reshape(256,) # create blue histogram, removing first values
 							histGreen = (cv2.calcHist([detection_img],[1],None,[256],[1,256])).reshape(256,) # create green histogram, removing first values
@@ -322,8 +324,9 @@ if __name__ == "__main__":
 								hist_squad_1[2] += np.uint64(histRed)
 
 								if args["save_detections"] != '':
-									detectionResized = cv2.resize(detection_img,(500,1000),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
-									cv2.imwrite(args["save_detection"] + "player1/image" + str(num_detection) + ".png", detectionResized,  [cv2.IMWRITE_PNG_COMPRESSION, 0])
+									detectionResized = cv2.resize(detection_img,(50,100),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
+									if not cv2.imwrite(args["save_detections"] + "player1/image" + str(num_detection) + ".png", detectionToSave,  [cv2.IMWRITE_PNG_COMPRESSION, 0]):
+										print("[ERROR] - Unable to save image")
 
 							elif (detection_squad_2_bool == True) and (area >= mean_acc):
 								color = [55,56,61] # set color -> black
@@ -336,8 +339,9 @@ if __name__ == "__main__":
 								hist_squad_2[2] += np.uint64(histRed)
 
 								if args["save_detections"] != '':
-									detectionResized = cv2.resize(detection_img,(500,1000),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
-									cv2.imwrite(args["save_detection"] + "player2/image" + str(num_detection) + ".png", detectionResized,  [cv2.IMWRITE_PNG_COMPRESSION, 0])
+									detectionResized = cv2.resize(detection_img,(50,100),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
+									if not cv2.imwrite(args["save_detections"] + "player2/image" + str(num_detection) + ".png", detectionToSave,  [cv2.IMWRITE_PNG_COMPRESSION, 0]):
+										print("[ERROR] - Unable to save image")
 
 							elif (detection_referee_bool == True) and (area >= mean_acc):
 								color = [255,0,0] # set color -> blue
@@ -350,8 +354,9 @@ if __name__ == "__main__":
 								hist_referee[2] += np.uint64(histRed)
 
 								if args["save_detections"] != '':
-									detectionResized = cv2.resize(detection_img,(500,1000),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
-									cv2.imwrite(args["save_detection"] + "referee/image" + str(num_detection) + ".png", detectionResized,  [cv2.IMWRITE_PNG_COMPRESSION, 0])
+									detectionResized = cv2.resize(detection_img,(50,100),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection image dimensions
+									if not cv2.imwrite(args["save_detections"] + "referee/image" + str(num_detection) + ".png", detectionToSave,  [cv2.IMWRITE_PNG_COMPRESSION, 0]):
+										print("[ERROR] - Unable to save image")
 							else:
 								color = [0,0,255] # set color -> red
 							cv2.rectangle(frame_bck, (x, y), (x + w, y + h), color, 2)

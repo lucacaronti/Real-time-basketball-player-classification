@@ -125,6 +125,7 @@ if __name__ == "__main__":
 		detection_squad_1_bool = False
 		detection_squad_2_bool = False
 		detection_referee_bool = False
+		detection_overlapping_bool = False
 		
 		area = 0
 		area_tot = 0
@@ -246,20 +247,19 @@ if __name__ == "__main__":
 						mean = (area_tot/count_area)
 						mean_acc = mean / 3
 
-						total_detection_per_frame+=1
-
 						color = [0,0,255] # inizialize color -> default is red
 						if w*1.2 < h: #check if width is at least 20% smaller than height
 							num_detection += 1
 							detection_img = frame[y_hist:(y_hist+h_hist),x_hist:(x_hist+w_hist),:] # cut out the detection
 
-							detection_img_resized = cv2.resize(detection_img,(500,1000),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection dimensions
+							detection_img_resized = cv2.resize(detection_img,(50,100),fx=0,fy=0, interpolation = cv2.INTER_CUBIC) # normalize detection dimensions
 							arrayImg = np.array(detection_img_resized) # cast image into numpy array
 							flattenImg = (arrayImg.flatten()).astype(np.uint8) # convert array into one dimension
 							
 							detection_squad_1_bool = False
 							detection_squad_2_bool = False
 							detection_referee_bool = False
+							detection_overlapping_bool = False
 
 							# predic output
 							prediction = model.predict(flattenImg.reshape(1,-1))
@@ -269,6 +269,8 @@ if __name__ == "__main__":
 								detection_squad_2_bool = True
 							elif prediction == [3]:
 								detection_referee_bool = True
+							elif prediction == [4]:
+								detection_overlapping_bool = True
 
 							if (detection_squad_1_bool == True) and (area >= mean_acc) :
 								color = [255,255,255] # set color -> white
@@ -284,7 +286,8 @@ if __name__ == "__main__":
 								color = [255,0,0] # set color -> blue
 
 								num_detection_referee += 1 # increase number of detection for referee
-
+							elif (detection_overlapping_bool == True) and (area >= mean_acc):
+								color = [0,255,0] # set color -> blue
 							else:
 								color = [0,0,255] # set color -> red
 							cv2.rectangle(frame_bck, (x, y), (x + w, y + h), color, 2)
